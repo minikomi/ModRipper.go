@@ -1,0 +1,89 @@
+Noisetracker/Soundtracker/Protracker Module Format
+
+4th Revision
+Credits: Lars Hamre, Norman Lin, Kurt Kennett, Mark Cox, Peter Hanning, Steinar Midtskogen, Marc Espie, and Thomas Meyer
+
+(All numbers below are given in decimal)
+
+Module Format:
+# Bytes   Description
+-------   -----------
+20        The module's title, padded with null (\0) bytes. Original
+          Protracker wrote letters only in uppercase.
+
+(Data repeated for each sample 1-15 or 1-31)
+22        Sample's name, padded with null bytes. If a name begins with a
+          '#', it is assumed not to be an instrument name, and is
+          probably a message.
+2         Sample length in words (1 word = 2 bytes). The first word of
+          the sample is overwritten by the tracker, so a length of 1
+          still means an empty sample. See below for sample format.
+1         Lowest four bits represent a signed nibble (-8..7) which is
+          the finetune value for the sample. Each finetune step changes
+          the note 1/8th of a semitone. Implemented by switching to a
+          different table of period-values for each finetune value.
+1         Volume of sample. Legal values are 0..64. Volume is the linear
+          difference between sound intensities. 64 is full volume, and
+          the change in decibels can be calculated with 20*log10(Vol/64)
+2         Start of sample repeat offset in words. Once the sample has
+          been played all of the way through, it will loop if the repeat
+          length is greater than one. It repeats by jumping to this
+          position in the sample and playing for the repeat length, then
+          jumping back to this position, and playing for the repeat
+          length, etc.
+2         Length of sample repeat in words. Only loop if greater than 1.
+(End of this sample's data.. each sample uses the same format and they
+ are stored sequentially)
+N.B. All 2 byte lengths are stored with the Hi-byte first, as is usual
+     on the Amiga (big-endian format).
+
+1         Number of song positions (ie. number of patterns played
+          throughout the song). Legal values are 1..128.
+1         Historically set to 127, but can be safely ignored.
+          Noisetracker uses this byte to indicate restart position -
+          this has been made redundant by the 'Position Jump' effect.
+128       Pattern table: patterns to play in each song position (0..127)
+          Each byte has a legal value of 0..63 (note the Protracker
+          exception below). The highest value in this table is the
+          highest pattern stored, no patterns above this value are
+          stored.
+(4)       The four letters "M.K." These are the initials of
+          Unknown/D.O.C. who changed the format so it could handle 31
+          samples (sorry.. they were not inserted by Mahoney & Kaktus).
+          Startrekker puts "FLT4" or "FLT8" here to indicate the # of
+          channels. If there are more than 64 patterns, Protracker will
+          put "M!K!" here. You might also find: "4CHN", "6CHN" or "8CHN"
+          which indicates 4, 6 or 8 channels respectively. If no letters
+          are here, then this is the start of the pattern data, and only
+          15 samples were present.
+299516q
+(Data repeated for each pattern:)
+1024      Pattern data for each pattern (starting at 0).
+(Each pattern has same format and is stored in numerical order.
+ See below for pattern format)
+
+(Data repeated for each sample:)
+xxxxxx    The maximum size of a sample is 65535 words. Each sample is
+          stored as a collection of bytes (length of a sample was given
+          previously in the module). Each byte is a signed value (-128
+          ..127) which is the channel data. When a sample is played at a
+          pitch of C2 (see below for pitches), about 8287 bytes of
+          sample data are sent to the channel per second. Multiply the
+          rate by the twelfth root of 2 (=1.0595) for each semitone
+          increase in pitch eg. moving the pitch up 1 octave doubles the
+          rate. The data is stored in the order it is played (eg. first
+          byte is first byte played). The first word of the sample data
+          is used to hold repeat information, and will overwrite any
+          sample data that is there (but it is probably safer to set it
+          to 0).
+          The rate given above (8287) conveys an inaccurate picture of
+          the module-format - in reality it is different for different
+          Amigas. As the routines for playing were written to run off
+          certain interrupts, for different Amiga computers the rate to
+          send data to the channel will be different. For PAL machines
+          the clock rate is 7093789.2 Hz and for NTSC machines it is
+          7159090.5 Hz. When the clock rate is divided by twice the
+          period number for the pitch it will give the rate to send the
+          data to the channel, eg. for a PAL machine sending a note at
+          C2 (period 428), the rate is 7093789.2/856 ~= 8287.1369
+(Each sample is stored sequentially)
