@@ -1,0 +1,8 @@
+# ModRipper
+
+Go script for extracting wav samples from Amiga protracker mods. 
+
+go build ModRipper.go
+
+ModRipper a.mod b.mod 
+

@@ -90,6 +90,7 @@ func NewWavFile() (wav *wavFile) {
 	wav.Data.WriteString("data")
 	return
 }
+
 func (w *wavFile) Construct(s Sample) {
 	w.Filename = s.Title
 	w.Data.Write(bytesFromInt(len(s.Data)))
@@ -127,9 +128,7 @@ func bytesFromInt(n int) (data []byte) {
 	return
 }
 
-func biggest(b []byte) byte {
-	var x byte
-	x = byte(0)
+func biggest(b []byte) (x byte) {
 	for _, y := range b {
 		if y > x {
 			x = y
@@ -169,9 +168,9 @@ func main() {
 		}
 
 		songLength := rawData.Next(2)[0] //discard unused 127 byte.
-		patterns := rawData.Next(133)[:songLength]
-		// discard patterns
-		for i := 0; i < int(biggest(patterns))+1; i++ { // patterns start at 00, so add 1
+		patternOrder := rawData.Next(133)[:songLength]
+		// discard pattern data
+		for i := 0; i < int(biggest(patternOrder))+1; i++ { // patterns start at 00, so add 1
 			_ = rawData.Next(1024)
 		}
 
