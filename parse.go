@@ -149,7 +149,6 @@ func main() {
 		samples := make([]Sample, 0)
 		for i := 0; i < 31; i++ {
 			sampleTitle := modTitle + " - " + string(bytes.Trim(rawData.Next(22), zerostring))
-			// Titles which start with # are assumed comments, not actual isntruments.
 			sampleLengthBytes := rawData.Next(2)
 			var sampleLength uint16
 			buf := bytes.NewBuffer(sampleLengthBytes)
