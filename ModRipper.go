@@ -176,9 +176,10 @@ func main() {
 	}
 	for _, f := range flag.Args() {
 		rawData := bufferFromFile(f)
-		extensionString := strings.ToLower(f[len(f)-4:])
+		dotSlice := strings.Split(f, ".")
+		extensionString := strings.ToLower(dotSlice[len(dotSlice)-1])
 		var samples []Sample
-		if extensionString == ".mod" {
+		if extensionString == "mod" {
 			samples = ProtrackerParse(rawData)
 		} else {
 			fmt.Println("Unsupported extension:", extensionString)
