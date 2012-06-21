@@ -4,27 +4,25 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 const (
 	chunksize  = 1024
-	zerostring = string(byte(00))
-)
-
-var (
-	channelCode, _     = hex.DecodeString("0100")
-	chunkDataSize, _   = hex.DecodeString("10000000")
-	compressionCode, _ = hex.DecodeString("0100")
-	sampleRate, _      = hex.DecodeString("7A460000")
-	averageBPS, _      = hex.DecodeString("F48C0000")
-	blockAlign, _      = hex.DecodeString("0200")
-	bitsPerSample, _   = hex.DecodeString("1000")
+	zerostring = string(0x00)
+	//wav file header
+	channelCode     = "0100"
+	chunkDataSize   = "10000000"
+	compressionCode = "0100"
+	sampleRate      = "7A460000"
+	averageBPS      = "F48C0000"
+	blockAlign      = "0200"
+	bitsPerSample   = "1000"
 )
 
 func bufferFromFile(name string) (buffer *bytes.Buffer) {
@@ -73,14 +71,14 @@ func NewWavFile() (wav *WavFile) {
 	wav.Header.WriteString("RIFF")
 	//prepare format header
 
-	wav.FormatHeader.WriteString("fmt ")
-	wav.FormatHeader.Write(chunkDataSize)
-	wav.FormatHeader.Write(compressionCode)
-	wav.FormatHeader.Write(channelCode)
-	wav.FormatHeader.Write(sampleRate)
-	wav.FormatHeader.Write(averageBPS)
-	wav.FormatHeader.Write(blockAlign)
-	wav.FormatHeader.Write(bitsPerSample)
+	wav.FormatHeader.WriteString("fmt " +
+		chunkDataSize +
+		compressionCode +
+		channelCode +
+		sampleRate +
+		averageBPS +
+		blockAlign +
+		bitsPerSample)
 	//prepare data header
 	wav.Data.WriteString("data")
 	return
@@ -178,7 +176,13 @@ func main() {
 	}
 	for _, f := range flag.Args() {
 		rawData := bufferFromFile(f)
-		samples := ProtrackerParse(rawData)
+		extensionString := strings.ToLower(f[len(f)-4:])
+		var samples []Sample
+		if extensionString == ".mod" {
+			samples = ProtrackerParse(rawData)
+		} else {
+			fmt.Println("Unsupported extension:", extensionString)
+		}
 		for _, s := range samples {
 			wav := NewWavFile()
 			wav.Construct(s)
