@@ -130,19 +130,30 @@ func biggest(b []byte) (x byte) {
 	return x
 }
 
-func ProtrackerParse(rawData *bytes.Buffer) (samples []Sample) {
+func BigEndianBytesToInt(b []byte) uint16 {
+	var ret uint16
+	buf := bytes.NewBuffer(b)
+	err := binary.Read(buf, binary.BigEndian, &ret)
+	if err != nil {
+		return 0
+	}
+	return ret
+}
+func LittleEndianBytesToInt(b []byte) uint16 {
+	var ret uint16
+	buf := bytes.NewBuffer(b)
+	err := binary.Read(buf, binary.LittleEndian, &ret)
+	if err != nil {
+		return 0
+	}
+	return ret
+}
 
+func ProtrackerParse(rawData *bytes.Buffer) (samples []Sample) {
 	modTitle := string(bytes.Trim(rawData.Next(20), zerostring))
 	for i := 0; i < 31; i++ {
 		sampleTitle := modTitle + " - " + string(bytes.Trim(rawData.Next(22), zerostring))
-		sampleLengthBytes := rawData.Next(2)
-		var sampleLength uint16
-		buf := bytes.NewBuffer(sampleLengthBytes)
-		err := binary.Read(buf, binary.BigEndian, &sampleLength)
-		sampleLength = sampleLength * 2
-		if err != nil {
-			break
-		}
+		sampleLength := BigEndianBytesToInt(rawData.Next(2)) * 2
 		if sampleLength >= uint16(2) &&
 			len(sampleTitle) > 0 {
 			samples = append(samples, Sample{
@@ -169,6 +180,45 @@ func ProtrackerParse(rawData *bytes.Buffer) (samples []Sample) {
 	return
 }
 
+func FastTrackerParse(rawData *bytes.Buffer) (samples []Sample) {
+	header := string(rawData.Next(17))
+	fmt.Println(header)
+	if header != "Extended Module: " {
+		return nil
+	}
+	xmTitle := string(bytes.Trim(rawData.Next(20), " "))
+	fmt.Println(xmTitle)
+
+	_ = rawData.Next(1 + //ID=01Ah
+		20 + //Tracker name
+		2 + //Tracker revision number, hi-byte is major version
+		4 + //Header size
+		2 + //Song length in patterns
+		2 + //Restart position
+		2) //Number of channels
+
+	p := rawData.Next(2)
+	fmt.Println(p)
+	q := rawData.Next(2)
+	fmt.Println(q)
+	numberOfPatterns := LittleEndianBytesToInt(p)
+	numberOfInstruments := LittleEndianBytesToInt(q)
+
+	_ = rawData.Next(2 + //Flags
+		2 + //Default tempo
+		2 + //Default BPM
+		256) // Pattern order table
+
+	for i := uint16(0); i < numberOfPatterns; i++ {
+		_ = rawData.Next(7)
+		patternDataLength := LittleEndianBytesToInt(rawData.Next(2))
+		_ = rawData.Next(int(patternDataLength))
+	}
+	_ = rawData.Next(4)
+	fmt.Println(xmTitle, numberOfPatterns, numberOfInstruments, string(rawData.Next(20)))
+	return nil
+}
+
 func main() {
 	flag.Parse()
 	if len(flag.Args()) == 0 {
@@ -178,9 +228,13 @@ func main() {
 		rawData := bufferFromFile(f)
 		dotSlice := strings.Split(f, ".")
 		extensionString := strings.ToLower(dotSlice[len(dotSlice)-1])
+		fmt.Println(extensionString)
 		var samples []Sample
 		if extensionString == "mod" {
 			samples = ProtrackerParse(rawData)
+		} else if extensionString == "xm" {
+			fmt.Println("xm OK")
+			samples = FastTrackerParse(rawData)
 		} else {
 			fmt.Println("Unsupported extension:", extensionString)
 		}
