@@ -139,6 +139,7 @@ func BigEndianBytesToInt(b []byte) uint16 {
 	}
 	return ret
 }
+
 func LittleEndianBytesToInt(b []byte) uint16 {
 	var ret uint16
 	buf := bytes.NewBuffer(b)
