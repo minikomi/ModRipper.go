@@ -109,9 +109,6 @@ func (w *WavFile) Dump() (err error) {
 		return
 	}
 	_, err = dump.Write(w.Data.Bytes())
-	if err != nil {
-		return
-	}
 	return
 }
 
